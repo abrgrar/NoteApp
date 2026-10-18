@@ -25,4 +25,4 @@ RUN mkdir -p /var/log/notesapp /app/backups \
 
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+CMD ["sh", "-c", "python migrate_comments.py && exec python app.py"]
