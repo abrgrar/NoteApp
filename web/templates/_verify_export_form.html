@@ -1,0 +1,6 @@
+<form method="post" action="{{ url_for('verify_export_file') }}" enctype="multipart/form-data">
+  <label for="export-file">Signed grades CSV (maximum 5 MiB)
+    <input id="export-file" type="file" name="file" accept=".csv,text/csv" required>
+  </label>
+  <button type="submit">Verify integrity</button>
+</form>

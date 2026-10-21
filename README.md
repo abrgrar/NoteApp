@@ -11,6 +11,7 @@ You need Docker with the Compose plugin.
 ```
 git clone git@github.com:KristenPire/NoteApp.git notesapp
 cd notesapp
+# Configure COMMENT_KEY and EXPORT_HMAC_KEY in .env (see below).
 docker compose up
 ```
 
@@ -50,7 +51,8 @@ lab/lab3/.venv/bin/python -c 'import base64; from cryptography.hazmat.primitives
 ```
 
 Keep this key to read existing comments after a restart. `.env` is ignored by Git.
-Build and start with `docker compose up -d --build`. Before serving requests, the
+Also configure the independent export signing key described below, then build and
+start with `docker compose up -d --build`. Before serving requests, the
 web container encrypts legacy comments in one transaction and verifies comments
 that are already encrypted. Repeating migration does not re-encrypt them. An
 invalid value or a wrong key rolls back migration and prevents startup.
@@ -70,6 +72,38 @@ docker compose run --rm --no-deps web python -m unittest discover -s tests -v
 Tests use a unique PostgreSQL schema that is removed afterwards and cover actual
 SQL writes, page/API/CSV reads, migration rollback and repeatability, and GCM
 authentication failures. Other teaching vulnerabilities remain part of the lab.
+
+## Signed grades exports (HMAC-SHA256)
+
+Add `EXPORT_HMAC_KEY=<Base64 32-byte random key>` to the project-root `.env`.
+Generate a new key once with the Python standard library:
+
+```
+python3 -c 'import base64, secrets; print(base64.b64encode(secrets.token_bytes(32)).decode())'
+```
+
+Use a separate key from `COMMENT_KEY`, `SECRET_KEY`, and `JWT_SECRET`. Keep the
+signing key private and preserve it across restarts; replacing it makes old exports
+fail verification. Missing or malformed signing keys prevent startup.
+
+Rebuild with `docker compose up -d --build`, then log in as a teacher. Each
+**export CSV** download includes its original four columns and a final
+`# HMAC-SHA256: <64 lowercase hex characters>` line. HMAC covers the exact UTF-8
+CSV bytes before that line, including the header and CRLF line endings.
+
+Use **Verify grades export** on the teacher page (or `/verify-export`) to upload a
+file up to 5 MiB. An unchanged download shows **CHECK PASSED**; changing a grade,
+comment, row, signature, encoding, or line ending shows **CHECK FAILED**. Unsigned
+older exports must be exported again. The signature trailer is metadata, not a
+grade row; CSV consumers should remove the final line before parsing grades.
+Keep the original download for verification, since spreadsheet apps may rewrite
+CSV formatting when saving.
+
+Verification checks integrity under the current signing key, does not import
+grades, and does not compare against the current database: an older unchanged
+export can still pass. Only the check result is returned, never a newly computed
+signature for uploaded content. The existing regression command above also covers
+export signing, tampering, malformed files, and upload access controls.
 
 ## Reset
 

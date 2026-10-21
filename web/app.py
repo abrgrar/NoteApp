@@ -17,10 +17,11 @@ import psycopg2
 import psycopg2.extras
 from flask import (
     Flask, request, session, redirect, url_for,
-    render_template, Response, jsonify, abort,
+    render_template, Request, Response, jsonify, abort,
 )
 
 from comment_crypto import encrypt_comment, decrypt_comment
+from export_integrity import decode_hmac_key, sign_export, verify_export
 
 # --- Configuration ------------------------------------------------------------
 # All configuration comes from the environment (set in docker-compose.yml).
@@ -30,8 +31,38 @@ DB_USER = os.environ.get("DB_USER", "notesapp")
 DB_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "notesapp_pg_pw_2024")
 JWT_SECRET = os.environ.get("JWT_SECRET", "s3cr3t")
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-session-key")
+EXPORT_HMAC_KEY = decode_hmac_key(os.environ.get("EXPORT_HMAC_KEY", ""))
+MAX_EXPORT_BYTES = 5 * 1024 * 1024
+
+
+class NotesRequest(Request):
+    @property
+    def max_content_length(self):
+        # Flask 3.0 has no per-request limit setter. Bound multipart parsing too,
+        # including chunked requests without Content-Length, before file spooling.
+        configured = super().max_content_length
+        if self.endpoint == "verify_export_file":
+            limit = MAX_EXPORT_BYTES + 64 * 1024
+            return min(configured, limit) if configured is not None else limit
+        return configured
+
+    def _get_file_stream(self, *args, **kwargs):
+        stream = super()._get_file_stream(*args, **kwargs)
+        if self.endpoint == "verify_export_file":
+            self.__dict__.setdefault("_export_upload_streams", []).append(stream)
+        return stream
+
+    def close(self):
+        try:
+            super().close()
+        finally:
+            # Aborted multipart parsing may never populate request.files.
+            for stream in self.__dict__.get("_export_upload_streams", ()):
+                stream.close()
+
 
 app = Flask(__name__)
+app.request_class = NotesRequest
 app.secret_key = SECRET_KEY
 
 LOG_FILE = os.environ.get("NOTESAPP_LOG", "/var/log/notesapp/app.log")
@@ -309,9 +340,38 @@ def export_csv():
         r["comment"] = decrypt_comment(r["comment"])
         writer.writerow([r["student"], r["class"], r["grade"], r["comment"]])
     return Response(
-        buf.getvalue(), mimetype="text/csv",
+        sign_export(buf.getvalue().encode("utf-8"), EXPORT_HMAC_KEY), mimetype="text/csv",
         headers={"Content-Disposition": "attachment; filename=grades.csv"},
     )
+
+
+@app.route("/verify-export", methods=["GET", "POST"])
+def verify_export_file():
+    if not login_required("teacher"):
+        return redirect(url_for("login"))
+    result = None
+    error = None
+    status = 200
+    if request.method == "POST":
+        # Allow multipart overhead, but reject oversized requests before parsing.
+        if request.content_length and request.content_length > MAX_EXPORT_BYTES + 64 * 1024:
+            error = "File is too large. Upload a CSV of at most 5 MiB."
+            status = 413
+        else:
+            upload = request.files.get("file")
+            if upload is None or not upload.filename:
+                error = "Choose a signed grades CSV file to verify."
+                status = 400
+            else:
+                content = upload.stream.read(MAX_EXPORT_BYTES + 1)
+                if len(content) > MAX_EXPORT_BYTES:
+                    error = "File is too large. Upload a CSV of at most 5 MiB."
+                    status = 413
+                else:
+                    result = verify_export(content, EXPORT_HMAC_KEY)
+                    if not result:
+                        status = 400
+    return render_template("verify_export.html", result=result, error=error), status
 
 
 @app.route("/admin")

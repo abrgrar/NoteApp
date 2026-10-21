@@ -29,6 +29,10 @@ table { width: 100%; border-collapse: collapse; margin-top: .6rem; }
 th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid #eef1f5; }
 th { font-size: .8rem; text-transform: uppercase; color: #5a6675; }
 .error { color: #b4461f; }
+.integrity-result { padding: 1rem; margin: 1rem 0; border: 1px solid; border-radius: 5px; }
+.integrity-result p { margin-bottom: 0; }
+.integrity-pass { color: #205b33; background: #edf8ef; border-color: #a1cfac; }
+.integrity-fail { color: #982d20; background: #fff0ee; border-color: #e5b0a8; }
 .small { font-size: .8rem; }
 a.small { margin-left: .5rem; }
 .classes { list-style: none; padding: 0; }

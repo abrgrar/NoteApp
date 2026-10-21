@@ -20,6 +20,7 @@ services:
     build: ./web
     environment:
       COMMENT_KEY: ${COMMENT_KEY:?Set COMMENT_KEY in .env}
+      EXPORT_HMAC_KEY: ${EXPORT_HMAC_KEY:?Set EXPORT_HMAC_KEY in .env}
       DB_HOST: db
       DB_NAME: notesapp
       DB_USER: notesapp

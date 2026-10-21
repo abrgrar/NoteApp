@@ -18,6 +18,7 @@ import app as notes_app
 import comment_crypto
 import migrate_comments
 from comment_crypto import decrypt_comment, encrypt_comment
+from export_integrity import TRAILER_PREFIX, verify_export
 
 
 class CryptoTests(unittest.TestCase):
@@ -180,7 +181,9 @@ class ApplicationTests(unittest.TestCase):
         for path in ("/export.csv", "/export.csv?class_id=1"):
             response = teacher.get(path)
             self.assertEqual(response.status_code, 200)
-            rows = list(csv.DictReader(io.StringIO(response.get_data(as_text=True))))
+            self.assertTrue(verify_export(response.data, notes_app.EXPORT_HMAC_KEY))
+            body = response.data[:response.data.rfind(TRAILER_PREFIX)].decode("utf-8")
+            rows = list(csv.DictReader(io.StringIO(body, newline="")))
             self.assertIn(expected, [row["comment"] for row in rows])
             if "class_id" in path:
                 self.assertTrue(all(row["class"] == "Mathematics" for row in rows))

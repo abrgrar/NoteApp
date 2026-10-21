@@ -12,6 +12,12 @@
 </div>
 
 <div class="card">
+  <h2>Verify grades export</h2>
+  <p>CSV exports include an HMAC-SHA256 signature. Upload a downloaded file to check whether any grades or comments have changed.</p>
+  {% include "_verify_export_form.html" %}
+</div>
+
+<div class="card">
   <h2>Add / update a grade</h2>
   <form method="post" action="{{ url_for('grades') }}">
     <label>Note id (leave empty to create)

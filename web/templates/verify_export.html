@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1>Verify grades export</h1>
+  <p>The server checks the file's HMAC-SHA256 signature. Verification does not import or update grades.</p>
+  {% if result is sameas true %}
+  <div class="integrity-result integrity-pass" role="status">
+    <strong>CHECK PASSED</strong>
+    <p>The signature matches. This export has not changed since it was signed with the current key.</p>
+  </div>
+  {% elif result is sameas false %}
+  <div class="integrity-result integrity-fail" role="alert">
+    <strong>CHECK FAILED</strong>
+    <p>The file was modified, is unsigned, has an invalid signature, or was signed with a different key.</p>
+  </div>
+  {% endif %}
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  {% include "_verify_export_form.html" %}
+  <p><a href="{{ url_for('teacher') }}">Back to classes</a></p>
+</div>
+{% endblock %}
