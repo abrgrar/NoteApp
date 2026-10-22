@@ -1,0 +1,7 @@
+MD5    : 3,724,595 guesses/second
+Argon2 : 25 ms for ONE guess  (39.3 guesses/second)
+MEASUREMENT_JSON={"argon2": {"daily": 3395306.6146984976, "iterations": 1, "rate": 39.29753026271409, "seconds": 0.02544689178466797}, "md5": {"daily": 321805032900.87115, "iterations": 100000, "rate": 3724595.288204527, "seconds": 0.026848554611206055}, "parameters": {"hash_len": 32, "memory_cost": 65536, "parallelism": 4, "salt_len": 16, "time_cost": 3, "type": "ID"}, "platform": {"machine": "aarch64", "platform": "Linux-6.12.54-linuxkit-aarch64-with-glibc2.41", "processor": ""}, "python": {"implementation": "CPython", "version": "3.11.17 (main, Oct 21 2026, 01:13:51) [GCC 14.2.0]"}, "ratio": 94779.3732406248}
+Worksheet daily totals use the displayed rounded rates multiplied by 86,400.
+MEASUREMENT_JSON and measurement.json retain unrounded CPU rates and derived values.
+Day totals assume this rate continues for 24 hours; they are not GPU or multi-target benchmarks.
+Prediction: about 1,000x; observed: about 94,800x, approximately 94.8 times the prediction.

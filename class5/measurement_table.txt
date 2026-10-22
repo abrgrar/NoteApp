@@ -1,0 +1,4 @@
+Hash | Guesses / second | Guesses an attacker makes in one day
+--- | --- | ---
+MD5 | 3,724,595 | 321,805,008,000
+Argon2 | 39.3 | 3,395,520

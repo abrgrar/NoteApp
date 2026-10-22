@@ -1,0 +1,8 @@
+Before login — alice password: alicepw
+Wrong password: rejected; stored password unchanged.
+First correct login: HTTP 200, final path /dashboard.
+After login — alice password: $argon2id$v=19$m=65536,t=3,p=4$NGV1ip7pGvjI7O/boBCtWA$y1R/Kok4D8+aBYf2bDLOheOXW6qiph7UvLRgB4nNGtY
+Independent database connection confirms persisted Argon2id hash.
+Logout and second correct login: HTTP 200, final path /dashboard; hash unchanged.
+Wrong password after migration: rejected; stored hash unchanged.
+PASS: Alice's login migration and Argon2 authentication verified.

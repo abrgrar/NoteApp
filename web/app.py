@@ -15,6 +15,8 @@ import subprocess
 
 import psycopg2
 import psycopg2.extras
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHash, VerificationError
 from flask import (
     Flask, request, session, redirect, url_for,
     render_template, Request, Response, jsonify, abort,
@@ -62,8 +64,14 @@ class NotesRequest(Request):
 
 
 app = Flask(__name__)
+ph = PasswordHasher()
 app.request_class = NotesRequest
 app.secret_key = SECRET_KEY
+
+
+def is_argon2_hash(value: str) -> bool:
+    return value.startswith("$argon2")
+
 
 LOG_FILE = os.environ.get("NOTESAPP_LOG", "/var/log/notesapp/app.log")
 
@@ -179,20 +187,40 @@ def login():
         password = request.form.get("password", "")
         # Flaw #8: SQL injection. Query built by string concatenation, no params.
         query = (
-            "SELECT id, username, role FROM users "
-            "WHERE username = '" + username + "' AND password = '" + password + "'"
+            "SELECT id, username, role, password FROM users "
+            "WHERE username = '" + username + "'"
         )
         conn = get_db()
         cur = conn.cursor()
+        authenticated = False
         try:
-            cur.execute(query)
-            row = cur.fetchone()
-        except Exception as e:
-            # Keep the raw error visible - helps the SQLi session.
-            error = f"Query error: {e}"
-            row = None
-        conn.close()
-        if row:
+            try:
+                cur.execute(query)
+                row = cur.fetchone()
+            except Exception as e:
+                # Keep the raw error visible - helps the SQLi session.
+                error = f"Query error: {e}"
+                row = None
+            if row:
+                stored = row["password"]
+                if is_argon2_hash(stored):
+                    try:
+                        ph.verify(stored, password)
+                        authenticated = True
+                    except (VerificationError, InvalidHash):
+                        authenticated = False
+                elif stored == password:
+                    # Upgrade a legacy account only after a successful login.
+                    new_hash = ph.hash(password)
+                    cur.execute(
+                        "UPDATE users SET password = %s WHERE id = %s",
+                        (new_hash, row["id"]),
+                    )
+                    authenticated = True
+                    log(f"upgraded {row['username']} to argon2")
+        finally:
+            conn.close()
+        if authenticated:
             session["user_id"] = row["id"]
             session["username"] = row["username"]
             session["role"] = row["role"]
@@ -438,7 +466,7 @@ def admin_users():
         cur.execute(
             "INSERT INTO users (username, password, role, teacher_id) "
             "VALUES (%s, %s, %s, %s)",
-            (request.form.get("username"), request.form.get("password"),
+            (request.form.get("username"), ph.hash(request.form.get("password", "")),
              request.form.get("role", "student"), None),
         )
     elif action == "delete":

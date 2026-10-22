@@ -1,0 +1,6 @@
+FINDING 1 — stored passwords (unsalted MD5)
+  Cracked:          4 of 6 accounts, in 0.103334 ms, with a public wordlist
+  Why those fell:   Common passwords present in the wordlist; MD5 makes guesses cheap.
+  Any that held out, & why: marie and raj: neither password is in this wordlist.
+  Severity:         High because a leaked table exposes common passwords to rapid offline recovery.
+  Fix (1 line):     Use Argon2id with a unique random salt per password and suitable memory/time costs.

@@ -1,0 +1,12 @@
+Python: 3.14.3
+Platform: Darwin arm64
+Command: python3 class5/crack/crack.py
+
+Wordlist: 170 entries
+Cracked 4 / 6 in 0.103334 ms
+  liwei : 123456
+  aisha : password1
+  tomk : qwerty123
+  sofia : iloveyou
+Held out: marie, raj
+Timing: dictionary scan only; file I/O excluded; one local CPU run.

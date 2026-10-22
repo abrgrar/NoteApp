@@ -1,0 +1,5 @@
+FINDING 2 — the fix, measured
+  Argon2 is about 94,800 times slower per guess than MD5.
+  Verdict — with your stolen database, which hash does the
+  attacker beat, which do they give up on, and WHY (one sentence):
+  MD5 enables rapid offline cracking; Argon2 makes each guess much costlier, so attackers may give up when a strong password exceeds their budget, but common passwords remain crackable.

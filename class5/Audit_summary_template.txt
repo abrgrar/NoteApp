@@ -1,0 +1,15 @@
+NOTESAPP PASSWORD AUDIT — pair: ____________
+
+FINDING 1 — stored passwords (unsalted MD5)
+  Cracked:      ___/6 in ___ ms, public wordlist
+  Held out & why: ____
+  Severity:     ___ because ____
+  Fix:          ____
+
+FINDING 2 — the fix, measured
+  MD5:    ____ guesses/sec   → ____ / day
+  Argon2: ____ guesses/sec   → ____ / day
+  Argon2 is ~____× slower per guess.
+  Verdict: ____
+
+STATE: NotesApp now stores passwords with Argon2 (alice migrated on login).  ✅

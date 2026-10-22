@@ -1,0 +1,10 @@
+Wordlist: 170 entries
+Bonus: 6 additional username+pw candidates
+Cracked 5 / 6 in 0.113542 ms
+  liwei : 123456
+  aisha : password1
+  tomk : qwerty123
+  sofia : iloveyou
+  marie : mariepw
+Held out: raj
+Timing: dictionary scan only; file I/O excluded; one local CPU run.

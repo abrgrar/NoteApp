@@ -1,0 +1,6 @@
+Recorded from the student's replies before the remaining measurements:
+
+Argon2 versus MD5: about 1,000 times slower per guess.
+Alice after her first normal login: a hash with the $argon2id$ prefix.
+
+Finding 1: no prediction was recorded before the completed dictionary attack.
