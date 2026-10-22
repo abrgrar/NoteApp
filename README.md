@@ -4,6 +4,9 @@ A small grades application used throughout the Computer Security course. Teacher
 record grades and comments for their classes, students read their own grades, and an
 admin manages users and classes.
 
+## Name
+Liu Yunfei 2023905324
+
 ## Run it
 
 You need Docker with the Compose plugin.

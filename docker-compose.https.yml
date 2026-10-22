@@ -1,0 +1,18 @@
+services:
+  web:
+    # Compose MERGES ports across files, so clear the base 8080 explicitly -
+    # otherwise the app stays reachable over plain HTTP and the fix is pointless.
+    ports: !reset []
+    expose:
+      - "5000"
+
+  nginx:
+    image: nginx:1.27
+    depends_on:
+      - web
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
