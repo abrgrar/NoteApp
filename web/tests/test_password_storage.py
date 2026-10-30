@@ -1,6 +1,6 @@
 """Password-storage route tests using real Argon2 and a mocked database.
 
-Run from web/ with COMMENT_KEY and EXPORT_HMAC_KEY configured:
+Run from web/ with JWT_SECRET, COMMENT_KEY and EXPORT_HMAC_KEY configured:
     python -m unittest discover -s tests -p test_password_storage.py -v
 
 These tests exercise authentication decisions and SQL writes. They do not

@@ -1,6 +1,6 @@
 """Signed CSV unit and Flask tests; no PostgreSQL connection is needed.
 
-Run from web/ with configured COMMENT_KEY and EXPORT_HMAC_KEY:
+Run from web/ with JWT_SECRET, COMMENT_KEY and EXPORT_HMAC_KEY configured:
     python -m unittest discover -s tests -p test_export_integrity.py -v
 """
 

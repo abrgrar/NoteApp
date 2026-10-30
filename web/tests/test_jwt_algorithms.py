@@ -1,6 +1,6 @@
 """JWT algorithm allowlist regressions; no PostgreSQL connection is needed.
 
-Run from web/ with COMMENT_KEY and EXPORT_HMAC_KEY configured:
+Run from web/ with JWT_SECRET, COMMENT_KEY and EXPORT_HMAC_KEY configured:
     python -m unittest discover -s tests -p test_jwt_algorithms.py -v
 """
 

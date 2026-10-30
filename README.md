@@ -14,7 +14,7 @@ You need Docker with the Compose plugin.
 ```
 git clone git@github.com:KristenPire/NoteApp.git notesapp
 cd notesapp
-# Configure COMMENT_KEY and EXPORT_HMAC_KEY in .env (see below).
+# Configure JWT_SECRET, COMMENT_KEY and EXPORT_HMAC_KEY in .env (see below).
 docker compose up
 ```
 
@@ -42,9 +42,26 @@ e.g. `bob` / `bobpw`.)
 - PostgreSQL 15
 - Docker Compose (`web` and `db` services)
 
+## JWT signing key
+
+Generate a key once and add the resulting line to the project-root `.env`:
+
+```
+python3 -c 'import secrets; print("JWT_SECRET=" + secrets.token_hex(32))'
+```
+
+This generates 256 random bits encoded as 64 hexadecimal characters. Keep the
+value private and persistent across restarts; `.env` is ignored by Git. The app
+requires at least 32 bytes and has no default signing key. Use a separate key
+from `COMMENT_KEY`, `EXPORT_HMAC_KEY`, and `SECRET_KEY`.
+
+After changing it, rebuild with `docker compose up -d --build --no-deps web`.
+JWTs signed with the previous key will be rejected; log in again to get a new
+token. Existing session cookies use the separate `SECRET_KEY`.
+
 ## Encrypted grade comments (lab 3)
 
-Create a project-root `.env` file containing `COMMENT_KEY=<Base64 AES-256 key>`.
+Add `COMMENT_KEY=<Base64 AES-256 key>` to the project-root `.env`.
 After installing the lab 3 dependencies, generate the key once with:
 
 ```

@@ -31,7 +31,9 @@ DB_HOST = os.environ.get("DB_HOST", "db")
 DB_NAME = os.environ.get("DB_NAME", "notesapp")
 DB_USER = os.environ.get("DB_USER", "notesapp")
 DB_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "notesapp_pg_pw_2024")
-JWT_SECRET = os.environ.get("JWT_SECRET", "s3cr3t")
+JWT_SECRET = os.environ.get("JWT_SECRET", "")
+if len(JWT_SECRET.encode("utf-8")) < 32:
+    raise ValueError("JWT_SECRET must contain at least 32 bytes")
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-session-key")
 EXPORT_HMAC_KEY = decode_hmac_key(os.environ.get("EXPORT_HMAC_KEY", ""))
 MAX_EXPORT_BYTES = 5 * 1024 * 1024
@@ -95,7 +97,7 @@ def get_db():
     return conn
 
 
-# --- Minimal JWT (deliberately weak) ------------------------------------------
+# --- Minimal JWT (HS256 only) -------------------------------------------------
 def _b64url(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
@@ -115,10 +117,7 @@ def make_jwt(payload: dict) -> str:
 
 
 def verify_jwt(token: str):
-    """Accept only HS256 JWTs and verify signatures with the configured key.
-
-    The HS256 key remains deliberately weak for the separate key-rotation lab.
-    """
+    """Accept only HS256 JWTs and verify signatures with the configured key."""
     try:
         h_b64, p_b64, sig_b64 = token.split(".")
     except ValueError:
@@ -220,7 +219,7 @@ def login():
             session["user_id"] = row["id"]
             session["username"] = row["username"]
             session["role"] = row["role"]
-            # Issue a weak JWT the dashboard uses to call the API.
+            # Issue an HS256 JWT the dashboard uses to call the API.
             session["token"] = make_jwt({
                 "user_id": row["id"], "username": row["username"], "role": row["role"],
             })

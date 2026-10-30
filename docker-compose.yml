@@ -25,7 +25,7 @@ services:
       DB_NAME: notesapp
       DB_USER: notesapp
       POSTGRES_PASSWORD: notesapp_pg_pw_2024
-      JWT_SECRET: s3cr3t
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       SECRET_KEY: dev-session-key
     ports:
       - "8080:5000"
