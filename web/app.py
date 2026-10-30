@@ -115,7 +115,7 @@ def make_jwt(payload: dict) -> str:
 
 
 def verify_jwt(token: str):
-    """Reject unsigned JWTs and verify HS256 signatures with the configured key.
+    """Accept only HS256 JWTs and verify signatures with the configured key.
 
     The HS256 key remains deliberately weak for the separate key-rotation lab.
     """
@@ -129,15 +129,13 @@ def verify_jwt(token: str):
     except Exception:
         return None
 
-    alg = header.get("alg", "").lower()
-    if alg == "none":
+    if not isinstance(header, dict) or header.get("alg") != "HS256":
         return None
-    if alg == "hs256":
-        signing_input = f"{h_b64}.{p_b64}".encode()
-        expected = _b64url(hmac.new(JWT_SECRET.encode(), signing_input, hashlib.sha256).digest())
-        if hmac.compare_digest(expected, sig_b64):
-            return payload
-        return None
+
+    signing_input = f"{h_b64}.{p_b64}".encode()
+    expected = _b64url(hmac.new(JWT_SECRET.encode(), signing_input, hashlib.sha256).digest())
+    if hmac.compare_digest(expected, sig_b64):
+        return payload
     return None
 
 
