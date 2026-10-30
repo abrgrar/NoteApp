@@ -115,10 +115,9 @@ def make_jwt(payload: dict) -> str:
 
 
 def verify_jwt(token: str):
-    """Decode a JWT. Accepts alg:none (no signature) and HS256 with a short key.
+    """Reject unsigned JWTs and verify HS256 signatures with the configured key.
 
-    This is intentionally broken (flaw #4): an attacker can forge any identity
-    by setting "alg":"none", and the HS256 key is trivially guessable.
+    The HS256 key remains deliberately weak for the separate key-rotation lab.
     """
     try:
         h_b64, p_b64, sig_b64 = token.split(".")
@@ -132,8 +131,7 @@ def verify_jwt(token: str):
 
     alg = header.get("alg", "").lower()
     if alg == "none":
-        # No signature verification at all.
-        return payload
+        return None
     if alg == "hs256":
         signing_input = f"{h_b64}.{p_b64}".encode()
         expected = _b64url(hmac.new(JWT_SECRET.encode(), signing_input, hashlib.sha256).digest())
