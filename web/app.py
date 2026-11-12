@@ -276,6 +276,9 @@ def api_notes(note_id):
     conn.close()
     if not note:
         return jsonify({"error": "not found"}), 404
+
+    if note["student_id"] != ident["user_id"] and ident.get("role") not in ("teacher", "admin"):
+        return jsonify({"error": "not found"}), 404
     note["comment"] = decrypt_comment(note["comment"])
     note["grade"] = float(note["grade"]) if note["grade"] is not None else None
     return jsonify(note)
