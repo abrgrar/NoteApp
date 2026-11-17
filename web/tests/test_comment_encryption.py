@@ -160,6 +160,62 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         return client
 
+    def test_login_sql_injection_payloads_do_not_authenticate(self):
+        # UNION supplies an attacker-chosen stored password, so this also catches
+        # concatenation when the password is checked separately with Argon2.
+        attempts = (
+            ("admin' -- ", ""),
+            ("admin' OR 1=1 -- ", "wrong-password"),
+            ("missing' UNION SELECT 1, 'admin', 'admin', 'chosen-password' -- ",
+             "chosen-password"),
+            ("alice", "' OR '1'='1"),
+        )
+        before = self.execute("SELECT * FROM users ORDER BY id", fetch=True)
+        for username, password in attempts:
+            with self.subTest(username=username, password=password):
+                client = notes_app.app.test_client()
+                response = client.post(
+                    "/login", data={"username": username, "password": password}
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(b"Invalid credentials.", response.data)
+                self.assertNotIn(b"Query error", response.data)
+                with client.session_transaction() as session:
+                    self.assertNotIn("user_id", session)
+                    self.assertNotIn("token", session)
+        self.assertEqual(self.execute("SELECT * FROM users ORDER BY id", fetch=True), before)
+
+    def test_login_handles_quoted_username_and_existing_argon2_hash(self):
+        username, password = "o'connor", "password-with-'quotes"
+        self.execute(
+            "INSERT INTO users (id, username, password, role) VALUES (%s, %s, %s, %s)",
+            (8, username, password, "student"),
+        )
+        for attempt in ("legacy password", "upgraded Argon2 password"):
+            with self.subTest(attempt=attempt):
+                client = notes_app.app.test_client()
+                response = client.post(
+                    "/login", data={"username": username, "password": password}
+                )
+                self.assertEqual(response.status_code, 302)
+                with client.session_transaction() as session:
+                    self.assertEqual(session["user_id"], 8)
+                    self.assertEqual(session["username"], username)
+                    self.assertEqual(session["role"], "student")
+                stored = self.execute(
+                    "SELECT password FROM users WHERE id = %s", (8,), fetch=True
+                )[0]["password"]
+                self.assertTrue(stored.startswith("$argon2id$"))
+                self.assertTrue(notes_app.ph.verify(stored, password))
+
+        client = notes_app.app.test_client()
+        response = client.post(
+            "/login", data={"username": username, "password": stored}
+        )
+        self.assertEqual(response.status_code, 200)
+        with client.session_transaction() as session:
+            self.assertNotIn("user_id", session)
+
     def assert_read_paths(self, note_id, expected):
         student = self.login("student")
         teacher = self.login("teacher")

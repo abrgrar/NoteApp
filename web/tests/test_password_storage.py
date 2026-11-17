@@ -10,6 +10,7 @@ claim to verify PostgreSQL persistence.
 import unittest
 from unittest.mock import MagicMock, patch
 
+import psycopg2
 from argon2 import PasswordHasher
 
 import app as notes_app
@@ -138,9 +139,37 @@ class PasswordStorageTests(unittest.TestCase):
         self.assertNotIn(payload, select)
         where = select.upper().split("WHERE", 1)[1]
         self.assertNotIn("PASSWORD", where)
-        # Username concatenation remains intentionally vulnerable for the
-        # separate SQL injection lab.
-        self.assertIn("'alice'", select)
+        self.assertNotIn("'alice'", select)
+        self.assertEqual(self.cursor.execute.call_args_list[0].args[1], ("alice",))
+
+    def test_username_sql_payload_is_bound_as_a_value(self):
+        payload = "missing' UNION SELECT 1, 'admin', 'admin', 'chosen-password' -- "
+        self.cursor.fetchone.return_value = None
+        client = notes_app.app.test_client()
+        response = client.post(
+            "/login", data={"username": payload, "password": "chosen-password"}
+        )
+        self.assert_rejected(client, response)
+        self.cursor.execute.assert_called_once()
+        query, parameters = self.cursor.execute.call_args.args
+        self.assertNotIn(payload, query)
+        self.assertEqual(parameters, (payload,))
+
+    def test_database_error_does_not_expose_query_details(self):
+        self.cursor.execute.side_effect = psycopg2.DatabaseError(
+            "users private_table SQL details"
+        )
+        client = notes_app.app.test_client()
+        response = client.post(
+            "/login", data={"username": "alice", "password": self.password}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Unable to sign in. Please try again.", response.data)
+        self.assertNotIn(b"private_table", response.data)
+        self.assertNotIn(b"SQL details", response.data)
+        with client.session_transaction() as session:
+            self.assertNotIn("user_id", session)
+        self.connection.close.assert_called_once()
 
     def test_unicode_legacy_password_can_log_in_and_upgrade(self):
         password = "密码-Café-🔐"

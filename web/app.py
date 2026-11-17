@@ -180,21 +180,18 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "")
         password = request.form.get("password", "")
-        # Flaw #8: SQL injection. Query built by string concatenation, no params.
-        query = (
-            "SELECT id, username, role, password FROM users "
-            "WHERE username = '" + username + "'"
-        )
+        # Bind the username as data; verify Argon2/legacy passwords below.
+        query = "SELECT id, username, role, password FROM users WHERE username = %s"
         conn = get_db()
         cur = conn.cursor()
         authenticated = False
         try:
             try:
-                cur.execute(query)
+                cur.execute(query, (username,))
                 row = cur.fetchone()
-            except Exception as e:
-                # Keep the raw error visible - helps the SQLi session.
-                error = f"Query error: {e}"
+            except psycopg2.Error:
+                error = "Unable to sign in. Please try again."
+                log("login database query failed")
                 row = None
             if row:
                 stored = row["password"]
@@ -417,15 +414,15 @@ def admin():
 
 @app.route("/admin/ping", methods=["POST"])
 def admin_ping():
-    # Flaw #11: no CSRF token. Flaw #9: command injection via os/system shell.
+    # Flaw #11: no CSRF token.
     if not login_required("admin"):
         return redirect(url_for("login"))
     host = request.form.get("host", "")
-    # Host is concatenated straight into a shell command.
-    cmd = "ping -c 1 " + host
     try:
+        # No shell interprets host; -- also prevents it becoming a ping option.
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=10,
+            ["ping", "-c", "1", "--", host],
+            capture_output=True, text=True, timeout=10,
         )
         output = result.stdout + result.stderr
     except Exception as e:

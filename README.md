@@ -42,6 +42,26 @@ e.g. `bob` / `bobpw`.)
 - PostgreSQL 15
 - Docker Compose (`web` and `db` services)
 
+## Injection fixes (class 9)
+
+Login binds the username with a SQL parameter and verifies the password separately
+to preserve Argon2 support. Administrator ping passes an argument list directly to
+`subprocess.run`, without a shell; `--` keeps the host from becoming a ping option.
+
+Rebuild the application and verify the running instance from the project root:
+
+```bash
+docker compose up -d --build --no-deps web
+python3 scripts/verify_injection.py
+```
+
+The verifier uses the seed Alice and administrator accounts, creates separate
+in-memory cookie jars, and checks normal login, normal ping, rejected SQL injection,
+and rejected command injection. It reads multiline `<pre>` output directly, so an
+empty `sed` result cannot hide a failed check. All five checks must print `PASS`;
+any failure exits with a nonzero status. Use `--base-url http://localhost:PORT` if
+the app is served on another port. No cookie files are created.
+
 ## JWT signing key
 
 Generate a key once and add the resulting line to the project-root `.env`:
