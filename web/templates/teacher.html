@@ -13,7 +13,8 @@
 
 <div class="card">
   <h2>Verify grades export</h2>
-  <p>CSV exports include an HMAC-SHA256 signature. Upload a downloaded file to check whether any grades or comments have changed.</p>
+  <p>CSV exports include an HMAC-SHA256 signature. Upload a downloaded file to check whether any grades or comments have
+    changed.</p>
   {% include "_verify_export_form.html" %}
 </div>
 
@@ -42,7 +43,15 @@
 <div class="card">
   <h2>All grades</h2>
   <table>
-    <thead><tr><th>id</th><th>Student</th><th>Class</th><th>Grade</th><th>Comment</th></tr></thead>
+    <thead>
+      <tr>
+        <th>id</th>
+        <th>Student</th>
+        <th>Class</th>
+        <th>Grade</th>
+        <th>Comment</th>
+      </tr>
+    </thead>
     <tbody>
       {% for n in notes %}
       <tr>
@@ -50,7 +59,7 @@
         <td>{{ n.student }}</td>
         <td>{{ n.class_name }}</td>
         <td>{{ n.grade }}</td>
-        <td>{% autoescape false %}{{ n.comment }}{% endautoescape %}</td>
+        <td>{{ n.comment }}</td>
       </tr>
       {% endfor %}
     </tbody>

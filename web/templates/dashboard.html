@@ -4,15 +4,21 @@
   <h1>My grades</h1>
   {% if notes %}
   <table>
-    <thead><tr><th>ID</th><th>Class</th><th>Grade</th><th>Comment</th></tr></thead>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Class</th>
+        <th>Grade</th>
+        <th>Comment</th>
+      </tr>
+    </thead>
     <tbody>
       {% for n in notes %}
       <tr>
         <td>{{ n.id }}</td>
         <td>{{ n.class_name }}</td>
         <td>{{ n.grade }}</td>
-        {# Flaw #10: comment rendered as rich text, autoescaping OFF. #}
-        <td>{% autoescape false %}{{ n.comment }}{% endautoescape %}</td>
+        <td>{{ n.comment }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -25,13 +31,13 @@
 <div class="card">
   <h2>Grade detail (API)</h2>
   <p>Look up a single grade by its id.</p>
-  <input type="number" id="noteId" placeholder="note id"{% if notes %} value="{{ notes[0].id }}"{% endif %}>
+  <input type="number" id="noteId" placeholder="note id" {% if notes %} value="{{ notes[0].id }}" {% endif %}>
   <button onclick="loadNote()">Load</button>
   <pre id="apiOut"></pre>
 </div>
 
 <script>
-  const TOKEN = {{ token|tojson }};
+  const TOKEN = {{ token| tojson }};
   async function loadNote() {
     const id = document.getElementById('noteId').value;
     const res = await fetch('/api/notes/' + id, {
