@@ -3,7 +3,14 @@
 <div class="card">
   <h1>Users</h1>
   <table>
-    <thead><tr><th>id</th><th>Username</th><th>Role</th><th></th></tr></thead>
+    <thead>
+      <tr>
+        <th>id</th>
+        <th>Username</th>
+        <th>Role</th>
+        <th></th>
+      </tr>
+    </thead>
     <tbody>
       {% for u in users %}
       <tr>
@@ -12,6 +19,7 @@
         <td><span class="badge badge-{{ u.role }}">{{ u.role }}</span></td>
         <td>
           <form method="post" action="{{ url_for('admin_users') }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="user_id" value="{{ u.id }}">
             <button type="submit" class="small danger">delete</button>
@@ -24,6 +32,7 @@
 
   <h2>Add user</h2>
   <form method="post" action="{{ url_for('admin_users') }}" class="row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="create">
     <input type="text" name="username" placeholder="username">
     <input type="text" name="password" placeholder="password">
@@ -47,9 +56,11 @@
   <h2>Test the server</h2>
   <p>Check that a host is reachable from the server.</p>
   <form method="post" action="{{ url_for('admin_ping') }}" class="row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="text" name="host" placeholder="e.g. 127.0.0.1">
     <button type="submit">Ping</button>
   </form>
-  {% if ping_result %}<pre>{{ ping_result }}</pre>{% endif %}
+  {% if ping_result %}
+  <pre>{{ ping_result }}</pre>{% endif %}
 </div>
 {% endblock %}

@@ -1,4 +1,5 @@
 <form method="post" action="{{ url_for('verify_export_file') }}" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label for="export-file">Signed grades CSV (maximum 5 MiB)
     <input id="export-file" type="file" name="file" accept=".csv,text/csv" required>
   </label>

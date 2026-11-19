@@ -40,6 +40,12 @@ class PingInjectionTests(unittest.TestCase):
                 session["role"] = role
         return client
 
+    def post_ping(self, host, role="admin"):
+        client = self.client(role)
+        with client.session_transaction() as session:
+            token = session.setdefault("csrf", "test-csrf-token")
+        return client.post("/admin/ping", data={"host": host, "csrf_token": token})
+
     def assert_host_argument(self, host):
         self.run_process.assert_called_once()
         args, kwargs = self.run_process.call_args
@@ -51,7 +57,7 @@ class PingInjectionTests(unittest.TestCase):
         self.assertTrue(kwargs["capture_output"])
 
     def test_localhost_ping_remains_available_to_admin(self):
-        response = self.client().post("/admin/ping", data={"host": "localhost"})
+        response = self.post_ping("localhost")
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"one ping response", response.data)
         self.assert_host_argument("localhost")
@@ -70,23 +76,21 @@ class PingInjectionTests(unittest.TestCase):
         for host in hosts:
             with self.subTest(host=host):
                 self.run_process.reset_mock()
-                response = self.client().post("/admin/ping", data={"host": host})
+                response = self.post_ping(host)
                 self.assertEqual(response.status_code, 200)
                 self.assert_host_argument(host)
 
     def test_ping_requires_an_admin_session(self):
         for role in (None, "student", "teacher"):
             with self.subTest(role=role):
-                response = self.client(role).post(
-                    "/admin/ping", data={"host": "127.0.0.1; id"}
-                )
+                response = self.post_ping("127.0.0.1; id", role)
                 self.assertEqual(response.status_code, 302)
                 self.assertTrue(response.location.endswith("/login"))
         self.run_process.assert_not_called()
 
     def test_ping_timeout_returns_the_admin_page(self):
         self.run_process.side_effect = subprocess.TimeoutExpired(["ping"], 10)
-        response = self.client().post("/admin/ping", data={"host": "localhost"})
+        response = self.post_ping("localhost")
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"timed out", response.data)
 

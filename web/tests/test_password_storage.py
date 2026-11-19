@@ -196,11 +196,13 @@ class PasswordStorageTests(unittest.TestCase):
             session["user_id"] = 1
             session["username"] = "admin"
             session["role"] = "admin"
+            session["csrf"] = "password-tests-csrf-token"
         response = client.post(
             "/admin/users",
             data={
                 "action": "create", "username": "new.student",
                 "password": self.password, "role": "student",
+                "csrf_token": "password-tests-csrf-token",
             },
         )
         self.assertEqual(response.status_code, 302)

@@ -124,10 +124,16 @@ class SignedExportRouteTests(unittest.TestCase):
                 session["role"] = role
         return client
 
+    def csrf_data(self, client):
+        with client.session_transaction() as session:
+            token = session.setdefault("csrf", "test-csrf-token")
+        return {"csrf_token": token}
+
     def upload(self, payload, client=None, **kwargs):
-        response = (client or self.teacher).post(
+        client = client or self.teacher
+        response = client.post(
             "/verify-export",
-            data={"file": (io.BytesIO(payload), "grades.csv")},
+            data={**self.csrf_data(client), "file": (io.BytesIO(payload), "grades.csv")},
             content_type="multipart/form-data",
             **kwargs,
         )
@@ -189,6 +195,7 @@ class SignedExportRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'multipart/form-data', response.data)
         self.assertIn(b'name="file"', response.data)
+        self.assertIn(b'name="csrf_token"', response.data)
         response = self.upload(sign_export(CSV_BODY, KEY))
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"CHECK PASSED", response.data)
@@ -212,7 +219,9 @@ class SignedExportRouteTests(unittest.TestCase):
         self.get_db.assert_not_called()
 
     def test_missing_and_oversized_files_are_rejected(self):
-        self.assertEqual(self.teacher.post("/verify-export", data={}).status_code, 400)
+        response = self.teacher.post("/verify-export", data=self.csrf_data(self.teacher))
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b"Choose a signed grades CSV file to verify.", response.data)
         self.assertEqual(self.upload(b"x" * (5 * 1024 * 1024 + 1)).status_code, 413)
         self.get_db.assert_not_called()
 

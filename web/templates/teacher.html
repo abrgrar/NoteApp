@@ -21,6 +21,7 @@
 <div class="card">
   <h2>Add / update a grade</h2>
   <form method="post" action="{{ url_for('grades') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>Note id (leave empty to create)
       <input type="text" name="note_id">
     </label>

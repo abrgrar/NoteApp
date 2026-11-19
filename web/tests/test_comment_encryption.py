@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from markupsafe import escape
 from psycopg2 import sql
 
 import app as notes_app
@@ -160,6 +161,11 @@ class ApplicationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         return client
 
+    def post_form(self, client, path, data):
+        with client.session_transaction() as session:
+            token = session.setdefault("csrf", "comment-tests-csrf-token")
+        return client.post(path, data={**data, "csrf_token": token})
+
     def test_login_sql_injection_payloads_do_not_authenticate(self):
         # UNION supplies an attacker-chosen stored password, so this also catches
         # concatenation when the password is checked separately with Argon2.
@@ -222,7 +228,7 @@ class ApplicationTests(unittest.TestCase):
         for client, path in ((student, "/dashboard"), (teacher, "/teacher")):
             response = client.get(path)
             self.assertEqual(response.status_code, 200)
-            self.assertIn(expected, response.get_data(as_text=True))
+            self.assertIn(str(escape(expected)), response.get_data(as_text=True))
             self.assertNotIn("gcm1:", response.get_data(as_text=True))
         response = student.get(f"/api/notes/{note_id}")
         self.assertEqual(response.status_code, 200)
@@ -247,7 +253,8 @@ class ApplicationTests(unittest.TestCase):
     def test_create_update_and_all_read_paths(self):
         teacher = self.login("teacher")
         text = 'Good work, 做得很好。 "Keep going!"\nSecond line.'
-        response = teacher.post(
+        response = self.post_form(
+            teacher,
             "/grades", data={"student_id": 6, "class_id": 1, "grade": "15.0", "comment": text}
         )
         self.assertEqual(response.status_code, 302)
@@ -259,7 +266,8 @@ class ApplicationTests(unittest.TestCase):
         self.assert_read_paths(note["id"], text)
 
         updated = "Updated feedback: excellent progress! 更新评语。"
-        response = teacher.post(
+        response = self.post_form(
+            teacher,
             "/grades", data={"note_id": note["id"], "grade": "18.5", "comment": updated}
         )
         self.assertEqual(response.status_code, 302)
@@ -273,7 +281,9 @@ class ApplicationTests(unittest.TestCase):
     def test_empty_comment_is_encrypted_and_null_remains_null(self):
         teacher = self.login("teacher")
         self.assertEqual(
-            teacher.post("/grades", data={"note_id": 1, "grade": "13", "comment": ""}).status_code,
+            self.post_form(
+                teacher, "/grades", data={"note_id": 1, "grade": "13", "comment": ""}
+            ).status_code,
             302,
         )
         rows = self.execute("SELECT id, comment FROM notes ORDER BY id", fetch=True)
@@ -296,7 +306,9 @@ class ApplicationTests(unittest.TestCase):
             self.assertEqual(anonymous.get(path).status_code, 302)
         student = self.login("student")
         self.assertEqual(student.get("/teacher").status_code, 302)
-        self.assertEqual(student.post("/grades", data={"note_id": 1}).status_code, 302)
+        self.assertEqual(
+            self.post_form(student, "/grades", data={"note_id": 1}).status_code, 302
+        )
         self.assertEqual(student.get("/api/notes/999999").status_code, 404)
         with student.get("/static/style.css") as response:
             self.assertEqual(response.status_code, 200)
